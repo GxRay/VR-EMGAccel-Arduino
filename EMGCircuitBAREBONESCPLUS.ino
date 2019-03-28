@@ -15,7 +15,7 @@
 #include <driver/adc.h>
 #include "esp_wifi.h"
 
-LSM6DS3 myIMU(SPI_MODE,33); //Default constructor is I2C, addr 0x6B
+LSM6DS3 myIMU(SPI_MODE,21); //Default constructor is I2C, addr 0x6B
 
 // Set these to your desired credentials.
 const char *ssid = "GGesp32";
@@ -40,8 +40,6 @@ int EMGLeftOb_pin = 36;
 int EMGRightOb_pin = 13;
 int EMGErect_pin = 32;
 
-//adc1_channel_t adcEMG1_pin = ADC1_CHANNEL_3; 
-
 // Initialize EMG Aquisition Variables
 int EMGleftRA=0;
 int EMGrightRA=0;
@@ -54,6 +52,26 @@ int Min = 0;
 int Max = 4095;
 int Map_Min= 0;
 int Map_Max= 2200;
+
+//Initialize Accelerometer Data
+float AccelX=0;
+float AccelY=0;
+float AccelZ=0;
+
+//Initialize Gyrometer Data
+float GyroX=0;
+float GyroY=0;
+float GyroZ=0;
+
+//Initialize Average Gyrometer Data
+float AvgGyroX=0;
+float AvgGyroY=0;
+float AvgGyroZ=0;
+
+//Initialize Average Gyrometer Data
+float TAvgGyroX=0;
+float TAvgGyroY=0;
+float TAvgGyroZ=0;
 
 /*
  * Login page
@@ -179,6 +197,8 @@ void setup()
   Serial.print("AP IP address: ");
   Serial.println(myIP);
 
+  myIMU.begin();
+
   server2.on("/", HTTP_GET, []() {
     server2.sendHeader("Connection", "close");
     server2.send(200, "text/html", loginIndex);
@@ -260,12 +280,35 @@ void loop()
     char d[6]="";
     char e[6]="";
 
-    //Method 1
+    // Initializing Buffer for ASCII String for Accel Data
+    char Ax[6]="";  
+    char Ay[6]="";  
+    char Az[6]="";
+
+    // Initializing Buffer for ASCII String for Accel Data
+    char Gx[6]="";  
+    char Gy[6]="";  
+    char Gz[6]="";  
+
+    //Method 1 EMG
     EMGleftRA=analogRead(EMGLeftRA_pin);
     EMGrightRA=analogRead(EMGRightRA_pin);
     EMGleftob=analogRead(EMGLeftOb_pin);
     EMGrightob=analogRead(EMGRightOb_pin);
     EMGerect=analogRead(EMGErect_pin);
+
+    // Defining Positional Data
+    AccelX=myIMU.readFloatAccelX(); 
+    AccelY=myIMU.readFloatAccelY(); 
+    AccelZ=myIMU.readFloatAccelZ();
+
+    // Defining Positional Data
+    
+    GyroX=myIMU.readFloatGyroX();
+    GyroY=myIMU.readFloatGyroY(); 
+    GyroZ=myIMU.readFloatGyroZ();   
+
+    //Filter EMG
     //Serial.println(EMG1);
     //adcStart(EMG1_pin);
     //EMG1=adcEnd(EMG1_pin);
@@ -290,6 +333,16 @@ void loop()
     String str3= String(EMGleftob);
     String str4= String(EMGrightob);
     String str5= String(EMGerect);
+
+    // Converting Accel Data to Strings
+    String Axstr= String(AccelX);
+    String Aystr= String(AccelY);
+    String Azstr= String(AccelZ);
+
+    // Converting Accel Data to Strings
+    String Gyxstr= String(GyroX);
+    String Gyystr= String(GyroY);
+    String Gyzstr= String(GyroZ);
     
     // Converts 5 bytes of data in str to a char array e
     str1.toCharArray(a,5);
@@ -297,7 +350,18 @@ void loop()
     str3.toCharArray(c,5);
     str4.toCharArray(d,5);
     str5.toCharArray(e,5);
-    
+
+    // Converting Strings to Char Array
+     Axstr.toCharArray(Ax,6);
+     Aystr.toCharArray(Ay,6);
+     Azstr.toCharArray(Az,6);
+
+     // Converting Strings to Char Array
+     Gyxstr.toCharArray(Gx,6);
+     Gyystr.toCharArray(Gy,6);
+     Gyzstr.toCharArray(Gz,6);
+
+    //Writing all to server EMG first then Accel then Gyro
     client.write(a);
     Serial.print(a);
     client.write(",");
@@ -315,7 +379,31 @@ void loop()
     client.write(",");
     Serial.print(",");
     client.write(e);
-    Serial.println(e);
+    Serial.print(e);
+    client.write(",");
+    Serial.print(",");
+    client.write(Ax);
+    Serial.print(Ax);
+    client.write(",");
+    Serial.print(",");
+    client.write(Ay);
+    Serial.print(Ay);
+    client.write(",");
+    Serial.print(",");
+    client.write(Az);
+    Serial.print(Az);
+    client.write(",");
+    Serial.print(",");
+    client.write(Gx);
+    Serial.print(Gx);
+    client.write(",");
+    Serial.print(",");
+    client.write(Gy);
+    Serial.print(Gy);
+    client.write(",");
+    Serial.print(",");
+    client.write(Gz);
+    Serial.println(Gz);
     
 
     //ENDING DATA TRANSMISSION 
