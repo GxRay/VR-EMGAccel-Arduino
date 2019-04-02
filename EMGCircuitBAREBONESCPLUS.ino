@@ -14,9 +14,16 @@
 #include "RunningMedian.h"
 #include <driver/adc.h>
 #include "esp_wifi.h"
+#include <MadgwickAHRS.h>
 
 LSM6DS3 myIMU(SPI_MODE,21); //Default constructor is I2C, addr 0x6B
+Madgwick filter;
+float EMA_a = 0.3;    //initialization of EMA alpha
+int EMA_S = 0;        //initialization of EMA S
 
+
+
+unsigned long microsPerReading, microsPrevious;
 // Set these to your desired credentials.
 const char *ssid = "GGesp32";
 const char *password = "capstone";
@@ -34,11 +41,11 @@ RunningMedian A3_RM(5);
 int samples = 0;
 
 // Initialize Analog Pins
-int EMGLeftRA_pin = 39;
-int EMGRightRA_pin = 34;
-int EMGLeftOb_pin = 36;
-int EMGRightOb_pin = 13;
-int EMGErect_pin = 32;
+int EMGLeftRA_pin = 39; //A3
+int EMGRightRA_pin = 34; //A2
+int EMGLeftOb_pin = 36; //A4
+int EMGRightOb_pin = 33; //33
+int EMGErect_pin = 32; //32
 
 // Initialize EMG Aquisition Variables
 int EMGleftRA=0;
@@ -197,8 +204,23 @@ void setup()
   Serial.print("AP IP address: ");
   Serial.println(myIP);
 
-  myIMU.begin();
+myIMU.settings.gyroRange = 125;   //Max deg/s.  Can be: 125, 245, 500, 1000, 2000
+myIMU.settings.gyroSampleRate = 13;   //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666
+myIMU.settings.gyroBandWidth = 50;  //Hz.  Can be: 50, 100, 200, 400;
 
+myIMU.settings.accelRange = 2;      //Max G force readable.  Can be: 2, 4, 8, 16
+myIMU.settings.accelSampleRate = 13;  //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666, 3332, 6664, 13330
+myIMU.settings.accelBandWidth = 50;  //Hz.  Can be: 50, 100, 200, 400;
+
+
+  myIMU.begin();
+  filter.begin(13);
+
+// initialize variables to pace updates to correct rate
+  microsPerReading = 1000000 / 13;
+  microsPrevious = micros();
+
+  
   server2.on("/", HTTP_GET, []() {
     server2.sendHeader("Connection", "close");
     server2.send(200, "text/html", loginIndex);
@@ -260,7 +282,9 @@ void setup()
 // Main logic of your circuit. It defines the interaction between the components you selected. After setup, it runs over and over again, in an eternal loop.
 void loop() 
 {
-  
+  float roll, pitch, heading;
+  unsigned long microsNow;
+
   
   WiFiClient client = server.available();   // listen for incoming clients
   server2.handleClient();
@@ -290,12 +314,19 @@ void loop()
     char Gy[6]="";  
     char Gz[6]="";  
 
+
+  
     //Method 1 EMG
     EMGleftRA=analogRead(EMGLeftRA_pin);
     EMGrightRA=analogRead(EMGRightRA_pin);
     EMGleftob=analogRead(EMGLeftOb_pin);
     EMGrightob=analogRead(EMGRightOb_pin);
     EMGerect=analogRead(EMGErect_pin);
+
+//// check if it's time to read data and update the filter
+  microsNow = micros();
+  if (microsNow - microsPrevious >= microsPerReading) {
+
 
     // Defining Positional Data
     AccelX=myIMU.readFloatAccelX(); 
@@ -307,6 +338,30 @@ void loop()
     GyroX=myIMU.readFloatGyroX();
     GyroY=myIMU.readFloatGyroY(); 
     GyroZ=myIMU.readFloatGyroZ();   
+
+    filter.updateIMU(GyroX,GyroY,GyroZ,AccelX,AccelY,AccelZ);
+
+    roll = filter.getRoll();
+    pitch = filter.getPitch();
+    heading = filter.getYaw();
+    
+    EMA_S = (EMA_a*heading)+((1-EMA_a)*EMA_S);
+    heading = heading - EMA_S;
+
+    AccelX=heading;
+    AccelY=pitch;
+    AccelZ=roll;
+
+//    Serial.print("Orientation: ");
+//    Serial.print(heading);
+//    Serial.print(" ");
+//    Serial.print(pitch);
+//    Serial.print(" ");
+//    Serial.println(roll);
+
+// increment previous time, so we keep proper pace
+    microsPrevious = microsPrevious + microsPerReading;
+  }
 
     //Filter EMG
     //Serial.println(EMG1);
@@ -344,6 +399,7 @@ void loop()
     String Gyystr= String(GyroY);
     String Gyzstr= String(GyroZ);
     
+    
     // Converts 5 bytes of data in str to a char array e
     str1.toCharArray(a,5);
     str2.toCharArray(b,5);
@@ -360,8 +416,8 @@ void loop()
      Gyxstr.toCharArray(Gx,6);
      Gyystr.toCharArray(Gy,6);
      Gyzstr.toCharArray(Gz,6);
-
-    //Writing all to server EMG first then Accel then Gyro
+//
+//    //Writing all to server EMG first then Accel then Gyro
     client.write(a);
     Serial.print(a);
     client.write(",");
