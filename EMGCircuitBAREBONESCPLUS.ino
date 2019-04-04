@@ -15,24 +15,29 @@
 #include <driver/adc.h>
 #include "esp_wifi.h"
 #include <MadgwickAHRS.h>
+#include "esp_wpa2.h" //wpa2 library for connections to Enterprise networks
 
 LSM6DS3 myIMU(SPI_MODE,21); //Default constructor is I2C, addr 0x6B
 Madgwick filter;
 float EMA_a = 0.3;    //initialization of EMA alpha
 int EMA_S = 0;        //initialization of EMA S
 
-
+#define EAP_ANONYMOUS_IDENTITY "anonymous@example.com"
+#define EAP_IDENTITY ""
+#define EAP_PASSWORD ""
+const char* ssid = "RU-Secure"; // Eduroam SSID
+//const char* host = "arduino.php5.sk"; //external server domain for HTTP connection after authentification
+int counter = 0;
+WiFiClient client;
 
 unsigned long microsPerReading, microsPrevious;
-// Set these to your desired credentials.
-const char *ssid = "GGesp32";
-const char *password = "capstone";
+
+//// Set these to your desired credentials.
+//const char *ssid = "GGesp32";
+//const char *password = "capstone";
 
 WiFiServer server(80);
 WebServer server2(81);
-
-
-
 
 
 //Init Running Average
@@ -44,7 +49,7 @@ int samples = 0;
 int EMGLeftRA_pin = 39; //A3
 int EMGRightRA_pin = 34; //A2
 int EMGLeftOb_pin = 36; //A4
-int EMGRightOb_pin = 33; //33
+int EMGRightOb_pin = 13; //13
 int EMGErect_pin = 32; //32
 
 // Initialize EMG Aquisition Variables
@@ -81,99 +86,6 @@ float TAvgGyroY=0;
 float TAvgGyroZ=0;
 
 /*
- * Login page
- */
-
-const char* loginIndex = 
- "<form name='loginForm'>"
-    "<table width='20%' bgcolor='A09F9F' align='center'>"
-        "<tr>"
-            "<td colspan=2>"
-                "<center><font size=4><b>ESP32 Login Page</b></font></center>"
-                "<br>"
-            "</td>"
-            "<br>"
-            "<br>"
-        "</tr>"
-        "<td>Username:</td>"
-        "<td><input type='text' size=25 name='userid'><br></td>"
-        "</tr>"
-        "<br>"
-        "<br>"
-        "<tr>"
-            "<td>Password:</td>"
-            "<td><input type='Password' size=25 name='pwd'><br></td>"
-            "<br>"
-            "<br>"
-        "</tr>"
-        "<tr>"
-            "<td><input type='submit' onclick='check(this.form)' value='Login'></td>"
-        "</tr>"
-    "</table>"
-"</form>"
-"<script>"
-    "function check(form)"
-    "{"
-    "if(form.userid.value=='admin' && form.pwd.value=='admin')"
-    "{"
-    "window.open('/serverIndex')"
-    "}"
-    "else"
-    "{"
-    " alert('Error Password or Username')/*displays error message*/"
-    "}"
-    "}"
-"</script>";
- 
-/*
- * Server Index Page
- */
- 
-const char* serverIndex = 
-"<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>"
-"<form method='POST' action='#' enctype='multipart/form-data' id='upload_form'>"
-   "<input type='file' name='update'>"
-        "<input type='submit' value='Update'>"
-    "</form>"
- "<div id='prg'>progress: 0%</div>"
- "<script>"
-  "$('form').submit(function(e){"
-  "e.preventDefault();"
-  "var form = $('#upload_form')[0];"
-  "var data = new FormData(form);"
-  " $.ajax({"
-  "url: '/update',"
-  "type: 'POST',"
-  "data: data,"
-  "contentType: false,"
-  "processData:false,"
-  "xhr: function() {"
-  "var xhr = new window.XMLHttpRequest();"
-  "xhr.upload.addEventListener('progress', function(evt) {"
-  "if (evt.lengthComputable) {"
-  "var per = evt.loaded / evt.total;"
-  "$('#prg').html('progress: ' + Math.round(per*100) + '%');"
-  "}"
-  "}, false);"
-  "return xhr;"
-  "},"
-  "success:function(d, s) {"
-  "console.log('success!')" 
- "},"
- "error: function (a, b, c) {"
- "}"
- "});"
- "});"
- "</script>";
-
-double ReadVoltage(int reading){
-  //double reading = analogRead(pin); // Reference voltage is 3v3 so maximum reading is 3v3 = 4095 in range 0 to 4095
-  if(reading < 1 || reading > 4095) return 0;
-  // return -0.000000000009824 * pow(reading,3) + 0.000000016557283 * pow(reading,2) + 0.000854596860691 * reading + 0.065440348345433;
-  return -0.000000000000016 * pow(reading,4) + 0.000000000118171 * pow(reading,3)- 0.000000301211691 * pow(reading,2)+ 0.001109019271794 * reading + 0.034143524634089;
-}
-
-/*
  * setup function
  */
 
@@ -185,32 +97,39 @@ double modifiedMap(double x, double in_min, double in_max, double out_min, doubl
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
 void setup() 
 {
-    // Setup Serial which is useful for debugging
-    // Use the Serial Monitor to view printed messages
-    Serial.begin(115200);
-    //while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("start");
-    Serial.println("Configuring access point...");
-//
-//  // Check if the init and set mode are actually needed later
-//  wifi_init_config_t wifiInitConfig = WIFI_INIT_CONFIG_DEFAULT();
-//  esp_wifi_init(&wifiInitConfig);
-//  esp_wifi_set_mode (WIFI_MODE_APSTA);
-//  esp_wifi_set_ps (WIFI_PS_NONE);
+  Serial.begin(115200);
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to network: ");
+  Serial.println(ssid);
+  WiFi.disconnect(true);  //disconnect form wifi to set new wifi connection
+  WiFi.mode(WIFI_STA); //init wifi mode
+ esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)EAP_ANONYMOUS_IDENTITY, strlen(EAP_ANONYMOUS_IDENTITY)); 
+  esp_wifi_sta_wpa2_ent_set_username((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY));
+  esp_wifi_sta_wpa2_ent_set_password((uint8_t *)EAP_PASSWORD, strlen(EAP_PASSWORD));
+  esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT(); //set config settings to default
+  esp_wifi_sta_wpa2_ent_enable(&config); //set config settings to enable function
+  WiFi.begin(ssid); //connect to wifi
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    counter++;
+    if(counter>=60){ //after 30 seconds timeout - reset board
+      ESP.restart();
+    }
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address set: "); 
+  Serial.println(WiFi.localIP()); //print LAN IP
 
-  // You can remove the password parameter if you want the AP to be open.
-  WiFi.softAP(ssid, password);
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
+  myIMU.settings.gyroRange = 125;   //Max deg/s.  Can be: 125, 245, 500, 1000, 2000
+  myIMU.settings.gyroSampleRate = 13;   //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666
+  myIMU.settings.gyroBandWidth = 50;  //Hz.  Can be: 50, 100, 200, 400;
 
-myIMU.settings.gyroRange = 125;   //Max deg/s.  Can be: 125, 245, 500, 1000, 2000
-myIMU.settings.gyroSampleRate = 13;   //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666
-myIMU.settings.gyroBandWidth = 50;  //Hz.  Can be: 50, 100, 200, 400;
-
-myIMU.settings.accelRange = 2;      //Max G force readable.  Can be: 2, 4, 8, 16
-myIMU.settings.accelSampleRate = 13;  //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666, 3332, 6664, 13330
-myIMU.settings.accelBandWidth = 50;  //Hz.  Can be: 50, 100, 200, 400;
+  myIMU.settings.accelRange = 2;      //Max G force readable.  Can be: 2, 4, 8, 16
+  myIMU.settings.accelSampleRate = 13;  //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666, 3332, 6664, 13330
+  myIMU.settings.accelBandWidth = 50;  //Hz.  Can be: 50, 100, 200, 400;
 
 
   myIMU.begin();
@@ -219,42 +138,6 @@ myIMU.settings.accelBandWidth = 50;  //Hz.  Can be: 50, 100, 200, 400;
 // initialize variables to pace updates to correct rate
   microsPerReading = 1000000 / 13;
   microsPrevious = micros();
-
-  
-  server2.on("/", HTTP_GET, []() {
-    server2.sendHeader("Connection", "close");
-    server2.send(200, "text/html", loginIndex);
-  });
-  server2.on("/serverIndex", HTTP_GET, []() {
-    server2.sendHeader("Connection", "close");
-    server2.send(200, "text/html", serverIndex);
-  });
-  /*handling uploading firmware file */
-  server2.on("/update", HTTP_POST, []() {
-    server2.sendHeader("Connection", "close");
-    server2.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-    ESP.restart();
-  }, []() {
-    HTTPUpload& upload = server2.upload();
-    if (upload.status == UPLOAD_FILE_START) {
-      Serial.printf("Update: %s\n", upload.filename.c_str());
-      if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
-        Update.printError(Serial);
-      }
-    } else if (upload.status == UPLOAD_FILE_WRITE) {
-      /* flashing firmware to ESP*/
-      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-        Update.printError(Serial);
-      }
-    } else if (upload.status == UPLOAD_FILE_END) {
-      if (Update.end(true)) { //true to set the size to the current progress
-        Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-      } else {
-        Update.printError(Serial);
-      }
-    }
-
-  });
 
 //Configure RunningAverage
 //A3_RA.clear();
@@ -270,11 +153,11 @@ myIMU.settings.accelBandWidth = 50;  //Hz.  Can be: 50, 100, 200, 400;
   analogReadResolution(12);
   analogSetAttenuation(ADC_6db);
 
- //Start Servers
+// //Start Servers
   server.begin();
-  server2.begin();
-  Serial.println("Server started");
-  Serial.println("Web Server started");
+//  server2.begin();
+//  Serial.println("Server started");
+//  Serial.println("Web Server started");
 
 
 }
@@ -285,9 +168,23 @@ void loop()
   float roll, pitch, heading;
   unsigned long microsNow;
 
-  
-  WiFiClient client = server.available();   // listen for incoming clients
-  server2.handleClient();
+  if (WiFi.status() == WL_CONNECTED) { //if we are connected to Eduroam network
+    counter = 0; //reset counter
+    Serial.println("Wifi is still connected with IP: "); 
+    Serial.println(WiFi.localIP());   //inform user about his IP address
+  }else if (WiFi.status() != WL_CONNECTED) { //if we lost connection, retry
+    WiFi.begin(ssid);      
+  }
+  while (WiFi.status() != WL_CONNECTED) { //during lost connection, print dots
+    delay(500);
+    Serial.print(".");
+    counter++;
+    if(counter>=60){ //30 seconds timeout - reset board
+    ESP.restart();
+    }
+  }
+  client = server.available();
+  Serial.println (client);
   delay(1);
   if (client) {                             // if you get a client,
     Serial.println("New Client.");           // print a message out the serial port
@@ -466,7 +363,7 @@ void loop()
     client.write("\r");
     }
     // close the connection:
-    client.stop();
-    Serial.println("Client Disconnected.");
+    //client.stop();
+    //Serial.println("Client Disconnected.");
   }
 }
