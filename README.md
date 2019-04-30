@@ -24,6 +24,15 @@ The patient will have a wearable EMG belt placed on their bodies to obtain the E
 <img src="pouch.png" align="center" width="350">
 </p>
 
+## Adafruit ESP32 Huzzah Microcontroller
+
+The Adafruit HUZZAH32- ESP32 Feather Board has 32 I/O pins that provide more than the necessary amount for this device application. 18 of those pins are connected to the on-board ADCs, and meet the 5 required for our EMG sensor circuit. The board contains 2 SAR ADCs (successive approximation register ADCs) with 12-bit resolution, and 5 MHz max sample rate across the pins. This ensures the ADC sample rate will not result in aliasing, as the max sample rate is very high.
+
+<p align="center">
+<img src="ESP.jpg" align="center" width="250">
+</p>
+
+Both Bluetooth and 2.4 GHz WiFi wireless are available for wireless data transmission with this board. WiFi supports 801.11 N, which can reach up to 150 Mbps speeds, almost 10 times the speed of Bluetooth, and will be able to send data at a rate suitable for real-time biofeedback, at a longer range, and without the use of serial UART communication. It also supports WiFi Direct, which connects directly to other WiFi enabled devices for easier and faster communication.
 
 ## EMG Circuit(s)
 
@@ -37,6 +46,12 @@ In order to assess the muscle activity of the trunk, it is important to acquire 
 <img src="Schematic Diagram EMG.png" align="center">
 </p>
 
+## EMG Signal Processing and Transfer
+EMG signal post processing was performed using C# libraries specially created for Unity based infinite impulse response real-time filtering and will operate using the processor on the phone that runs the virtual reality app. The link to the open source libraries can be found in the associated repositories. TCP/IP libraries in Unity and C# will be used to read data sent over the WiFi network connection from the microprocessor. TCP governs the transmission of data packets and is not a serial communication protocol, so it does not require setting UART and baud rate, making it very simple for data transmission. 
+<p align="center">
+<img src="sigprocdiagg.png" align="center">
+</p>
+
 ## Inertial Measurement Unit (IMU)
 
 Accelerometers are sensors that measure changes in both static and dynamic acceleration in relation to gravity on each axis dimension, and thus can provide both tilt angle and tilt velocity of the trunk. This positional data is used to measure medial-lateral (ML) and anterior-posterior (AP) movement of the patient’s trunk during training. However, a patient may also rotate their trunk instead of tilting, avoiding the desired movements for training. Gyroscopes measure angular velocity and change in angular velocity in relation to a resonating mass connected to a resistor, and can provide the rotational position of the trunk (roll, pitch, yaw). The Sparkfun LSM6DS3 Digital accelerometer and gyroscope combines both an accelerometer and a gyroscope for both tilt and rotational detection. It provides measurements in 6 degrees of freedom (3 linear, 3 rotational), and comes in a small form factor suitable for wearable devices. This board and sensor already include an ADC and combined Low-Pass and High-Pass Filters for the gyroscope, and a combined Low-Pass and Composite LP/HP circuit for the accelerometer, thus no additional preprocessing circuit is required, and the device output can be used directly by the microprocessor. It can read data up to 1.7 kHz, has an 8 kB memory buffer for data reading, and only consumes 0.9 mA in a low power state. This makes it an all-in-one solution to measure positional data efficiently and accurately in a wearable device application.
@@ -47,3 +62,4 @@ Accelerometers are sensors that measure changes in both static and dynamic accel
 
 ### IMU Processing
 In order to obtain the positional data in the form of degrees rotation usable by the Unity VR framework, signal processing was done on the raw Accel and Gyro values obtained from the IMU in Arduino. A Madgwick filter, which combines angular velocities and accelerations from an IMU and turns them into an orientation, was used to calculate the degree rotation the user has moved
+
