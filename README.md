@@ -2,12 +2,12 @@
 Arduino code to obtain EMG and accel data for the VR trunk rehabilitation capstone project
 
 ## Table of Contents
-[Hardware](#hardware)
-<a name="hardware"/> <br/>
-[Pneumatic System](#pneumatic-system)
-<a name="pneumetic-system"/> <br/>
-[Control System](#control-system)
-<a name="control-system"/> <br/>
+[Purpose](#purpose)
+<a name="purpose"/> <br/>
+[EMG Circuit(s)](#emg-circuit(s))
+<a name="emg-circuit(s)"/> <br/>
+[Intertial Measurement Unit (IMU)](#inertial-measurement-unit-(imu))
+<a name="inertial-measurement-unit-(imu)"/> <br/>
 [Software](#software)
 <a name="software"/> <br/>
 
@@ -26,5 +26,20 @@ The patient will have a wearable EMG belt placed on their bodies to obtain the E
 
 ## EMG Circuit(s)
 
+<p align="center">
+<img src="block diagramEMG.png" align="center">
+</p>
 
 In order to assess the muscle activity of the trunk, it is important to acquire relevant data from the appropriate muscle groups. Electromyography (EMG) is used to obtain electrical activity produced by skeletal muscles, more specifically the muscle cells they are comprised of. This is done using electrodes which will feed directly into a sensor circuit which will amplify and filter the signal. The resultant signal is then sent to an Analog-to-digital (ADC) converter for further signal processing. An overview indicating all the steps the signal will be sent through is shown below through circuit schematic.
+
+<p align="center">
+<img src="Schematic Diagram EMG.png" align="center">
+</p>
+
+## Inertial Measurement Unit (IMU)
+
+Accelerometers are sensors that measure changes in both static and dynamic acceleration in relation to gravity on each axis dimension, and thus can provide both tilt angle and tilt velocity of the trunk. This positional data is used to measure medial-lateral (ML) and anterior-posterior (AP) movement of the patient’s trunk during training. However, a patient may also rotate their trunk instead of tilting, avoiding the desired movements for training. Gyroscopes measure angular velocity and change in angular velocity in relation to a resonating mass connected to a resistor, and can provide the rotational position of the trunk (roll, pitch, yaw). The Sparkfun LSM6DS3 Digital accelerometer and gyroscope combines both an accelerometer and a gyroscope for both tilt and rotational detection. It provides measurements in 6 degrees of freedom (3 linear, 3 rotational), and comes in a small form factor suitable for wearable devices. This board and sensor already include an ADC and combined Low-Pass and High-Pass Filters for the gyroscope, and a combined Low-Pass and Composite LP/HP circuit for the accelerometer, thus no additional preprocessing circuit is required, and the device output can be used directly by the microprocessor. It can read data up to 1.7 kHz, has an 8 kB memory buffer for data reading, and only consumes 0.9 mA in a low power state. This makes it an all-in-one solution to measure positional data efficiently and accurately in a wearable device application.
+
+<p align="center">
+<img src="IMU.png" align="center" width="350">
+</p>
