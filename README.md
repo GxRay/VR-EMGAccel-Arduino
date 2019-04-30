@@ -1,5 +1,5 @@
 # Wearable Acquisiton Belt
-Arduino code to obtain EMG and accel data for the VR trunk rehabilitation capstone project
+Code for the Wearable Belt Microcontroller (ESP32) - To use with VIRTUAL REALITY TRUNK MUSCLE TRAINING SYSTEM Biomedical Capstone Project
 
 ## Table of Contents
 [Purpose](#purpose)
