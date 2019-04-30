@@ -53,7 +53,7 @@ In order to assess the muscle activity of the trunk, it is important to acquire 
 ## EMG Signal Transfer
 EMG signal post processing was performed using C# libraries specially created for Unity based infinite impulse response real-time filtering and will operate using the processor on the phone that runs the virtual reality app. The link to the open source libraries can be found in the associated repositories. TCP/IP libraries in Unity and C# will be used to read data sent over the WiFi network connection from the microprocessor. TCP governs the transmission of data packets and is not a serial communication protocol, so it does not require setting UART and baud rate, making it very simple for data transmission.The Adafruit Huzzah ESP32 board collects the EMG data and sends it over WIFI through TCP/IP communication as a comma seperated string where unity parses and displays it accordingly.
 <p align="center">
-<img src="sigprocdiagg.png" align="center" width="450">
+<img src="sigprocdiagg.png" align="center" width="650">
 </p>
 
 ## Inertial Measurement Unit (IMU)
