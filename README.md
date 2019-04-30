@@ -8,13 +8,14 @@ Arduino code to obtain EMG and accel data for the VR trunk rehabilitation capsto
 <a name="emg-circuits"/> <br/>
 [Intertial Measurement Unit (IMU)](#inertial-measurement-unit-imu)
 <a name="inertial-measurement-unit-imu"/> <br/>
-[Software](#software)
-<a name="software"/> <br/>
+[IMU Processing](#imu-processing)
+<a name="imu-processing"/> <br/>
 
 
 ## Associated Repositories
 [1. Virtual Reality Software Code](https://github.com/GxRay/Trunk-Rehabilitation-VR-Training-Simulator-/tree/testEnv) <br/>
 [2. SpaceBall Code](https://github.com/bharath1000/VR_Simulator-Spaceball)<br/>
+[3. MagdwickAHRS algorithm](https://github.com/arduino-libraries/MadgwickAHRS)<br/>
 
 ## Purpose
 The patient will have a wearable EMG belt placed on their bodies to obtain the EMG/Positional data of the targeted muscles mentioned above. The Belt will consist of 2 pouches each housing a certain number of circuits and batteries that will be placed in circuit covers that will be mentioned later. Referring to Figure below the first pouch will contain 2 batteries to power the circuits (B in the figure) and 3 circuits (Numbers 1-3).  This pouch will also house the microcontroller that will send the data wirelessly to a device (M in the figure). The second pouch will house 2 more batteries and the remaining 2 circuits totalling to 5 circuits all together. Each circuit will have electrodes attached to wires protruding from the pouches to be attached to the patient
@@ -43,3 +44,6 @@ Accelerometers are sensors that measure changes in both static and dynamic accel
 <p align="center">
 <img src="IMU.jpg" align="center" width="250">
 </p>
+
+### IMU Processing
+In order to obtain the positional data in the form of degrees rotation usable by the Unity VR framework, signal processing was done on the raw Accel and Gyro values obtained from the IMU in Arduino. A Madgwick filter, which combines angular velocities and accelerations from an IMU and turns them into an orientation, was used to calculate the degree rotation the user has moved
