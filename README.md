@@ -4,8 +4,12 @@ Code for the Wearable Belt Microcontroller (ESP32) - To use with VIRTUAL REALITY
 ## Table of Contents
 [Purpose](#purpose)
 <a name="purpose"/> <br/>
+[Microcontroller](#adafruit-esp32-huzzah-microcontroller)
+<a name="adafruit-esp32-huzzah-microcontroller"/> <br/>
 [EMG Circuit(s)](#emg-circuits)
 <a name="emg-circuits"/> <br/>
+[EMG Signal Transfer](#emg-signal-transfer)
+<a name="emg-signal-transfer"/> <br/>
 [Intertial Measurement Unit (IMU)](#inertial-measurement-unit-imu)
 <a name="inertial-measurement-unit-imu"/> <br/>
 [IMU Processing](#imu-processing)
@@ -46,12 +50,11 @@ In order to assess the muscle activity of the trunk, it is important to acquire 
 <img src="Schematic Diagram EMG.png" align="center">
 </p>
 
-## EMG Signal Processing and Transfer
-EMG signal post processing was performed using C# libraries specially created for Unity based infinite impulse response real-time filtering and will operate using the processor on the phone that runs the virtual reality app. The link to the open source libraries can be found in the associated repositories. TCP/IP libraries in Unity and C# will be used to read data sent over the WiFi network connection from the microprocessor. TCP governs the transmission of data packets and is not a serial communication protocol, so it does not require setting UART and baud rate, making it very simple for data transmission. 
+## EMG Signal Transfer
+EMG signal post processing was performed using C# libraries specially created for Unity based infinite impulse response real-time filtering and will operate using the processor on the phone that runs the virtual reality app. The link to the open source libraries can be found in the associated repositories. TCP/IP libraries in Unity and C# will be used to read data sent over the WiFi network connection from the microprocessor. TCP governs the transmission of data packets and is not a serial communication protocol, so it does not require setting UART and baud rate, making it very simple for data transmission.The Adafruit Huzzah ESP32 board collects the EMG data and sends it over WIFI through TCP/IP communication as a comma seperated string where unity parses and displays it accordingly.
 <p align="center">
-<img src="sigprocdiagg.png" align="center">
+<img src="sigprocdiagg.png" align="center" width="450">
 </p>
-
 ## Inertial Measurement Unit (IMU)
 
 Accelerometers are sensors that measure changes in both static and dynamic acceleration in relation to gravity on each axis dimension, and thus can provide both tilt angle and tilt velocity of the trunk. This positional data is used to measure medial-lateral (ML) and anterior-posterior (AP) movement of the patient’s trunk during training. However, a patient may also rotate their trunk instead of tilting, avoiding the desired movements for training. Gyroscopes measure angular velocity and change in angular velocity in relation to a resonating mass connected to a resistor, and can provide the rotational position of the trunk (roll, pitch, yaw). The Sparkfun LSM6DS3 Digital accelerometer and gyroscope combines both an accelerometer and a gyroscope for both tilt and rotational detection. It provides measurements in 6 degrees of freedom (3 linear, 3 rotational), and comes in a small form factor suitable for wearable devices. This board and sensor already include an ADC and combined Low-Pass and High-Pass Filters for the gyroscope, and a combined Low-Pass and Composite LP/HP circuit for the accelerometer, thus no additional preprocessing circuit is required, and the device output can be used directly by the microprocessor. It can read data up to 1.7 kHz, has an 8 kB memory buffer for data reading, and only consumes 0.9 mA in a low power state. This makes it an all-in-one solution to measure positional data efficiently and accurately in a wearable device application.
