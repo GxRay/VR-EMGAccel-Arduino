@@ -24,3 +24,7 @@ The patient will have a wearable EMG belt placed on their bodies to obtain the E
 </p>
 
 
+## EMG Circuit(s)
+
+
+In order to assess the muscle activity of the trunk, it is important to acquire relevant data from the appropriate muscle groups. Electromyography (EMG) is used to obtain electrical activity produced by skeletal muscles, more specifically the muscle cells they are comprised of. This is done using electrodes which will feed directly into a sensor circuit which will amplify and filter the signal. The resultant signal is then sent to an Analog-to-digital (ADC) converter for further signal processing. An overview indicating all the steps the signal will be sent through is shown below through circuit schematic.
